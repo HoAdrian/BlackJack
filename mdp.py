@@ -2,6 +2,9 @@ import random
 # state = (playerCardValueExcludingAces, dealerCardValue, numAces)
 # dealerCardValue belongs to {1, 2, 3, 4, ..., 10}
 
+"""
+Author: Shing Hei Ho (Adrian)
+"""
 ###### helper method of the world dynamics #######
 
 def dealCard(deck, dealerCards, playerCards, isToPlayer):
@@ -61,32 +64,25 @@ def computeDealerTotalValue(dealerCards):
             return dealerCardValue+numAces*11
 
 def dealerPlay(dealerCards, deck, playerCards):
-    dealerCardValue, numAcesDealer = getDealerCardValueExcludeAce(dealerCards)
+    dealerTotal = computeDealerTotalValue(dealerCards)
 
-    while dealerCardValue+numAcesDealer < 17 or dealerCardValue+numAcesDealer*11 < 17:
+    while dealerTotal < 17:
         dealCard(deck, dealerCards, playerCards, isToPlayer = False)
-        dealerCardValue, numAcesDealer = getDealerCardValueExcludeAce(dealerCards)
+        dealerTotal = computeDealerTotalValue(dealerCards)
     
-    dealerFinal = computeDealerTotalValue(dealerCards)
-    playerFinal = computePlayerTotalValue(playerCards)
+    dealerTotal = computeDealerTotalValue(dealerCards)
+    playerTotal = computePlayerTotalValue(playerCards)
     reward = 0
-    if dealerFinal > 21:
+    if dealerTotal > 21:
         reward = 1
-    elif dealerFinal < playerFinal:
+    elif dealerTotal < playerTotal:
         reward = 1
-    elif dealerFinal == playerFinal:
+    elif dealerTotal == playerTotal:
         reward == 0
     else:
         reward = -1
         
     return reward
-
-def isTerminal(state):
-    playerCardValue, dealerCard, numAces = state
-    if playerCardValue+numAces > 21 or playerCardValue+numAces == 21 or playerCardValue+numAces*11 == 21:
-        return True
-    else:
-        return False
     
         
     

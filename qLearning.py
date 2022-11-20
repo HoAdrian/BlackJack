@@ -3,7 +3,12 @@
 
 from mdp import *
 import random
+import matplotlib.pyplot as plt 
+import numpy as np 
 
+"""
+Author: Shing Hei Ho (Adrian)
+"""
 class QLearningAgent:
     def __init__(self, alpha, epsilon, gamma=1):
         self.alpha = alpha
@@ -45,26 +50,44 @@ class QLearningAgent:
 
         return self.getActionFromQValue(state)
     
+    def decayEpsilon(self):
+        self.epsilon *= 0.999
+    
+    def decayAlpha(self):
+        self.alpha *= 0.999
+    
     def getLegalActions(self, state):
-        if isTerminal(state):
+        if self.isTerminal(state):
             return []
         else:
             return ["hit", "stand"]
+        
+    def isTerminal(self, state):
+        playerCardValue, dealerCard, numAces = state
+        if playerCardValue+numAces > 21 or playerCardValue+numAces == 21 or playerCardValue+numAces*11 == 21:
+            return True
+        else:
+            return False
     
     def flipCoin(self, p):
         r = random.random()
         return r < p
     
 
-
+####################################################
 ################# Game Loop ########################
+####################################################
+print("++++++++++++training")
+agent = QLearningAgent(alpha=0.2, epsilon=0.1)
+numGames = 10000
+printIter = 1000
+cumReward = 0
 
-agent = QLearningAgent(alpha=0.5, epsilon=0)
-
-numGames = 3
+# for visualizing policy
+states = set()
 
 for iter in range(numGames):
-    # create deck and configure game
+    # create deck and deal initial cards
     cards = [[i,i,i,i] for i in range(1, 11, 1)]
     deck = []
     for fourCards in cards:
@@ -81,14 +104,19 @@ for iter in range(numGames):
     # assume the second card of the dealer is revealed
     state = (playerCardValue, dealerCards[1], numAces)
     
+    states.add(state)
+    
+    if playerCardValue+numAces*11 == 21:
+        #print("blackjack, not useful information to learn")
+        continue
+    
     while (True):
-        action = agent.getActionFromQValue(state)
+        action = agent.getEpsilonGreedyAction(state)
+        states.add(state)
         
         if action == "hit":
             dealCard(deck, dealerCards, playerCards, isToPlayer=True)
-            
             playerCardValue, numAces = getPlayerCardValueExcludeAce(playerCards)
-            
             #transition
             nextState = (playerCardValue, dealerCards[1], numAces)
             
@@ -96,40 +124,87 @@ for iter in range(numGames):
             playerTotalValue = computePlayerTotalValue(playerCards)
             if playerTotalValue > 21:
                 reward = -1
+                cumReward+=reward
                 agent.update(state, action, nextState, reward)
                 break
             elif playerTotalValue == 21:
                 reward = dealerPlay(dealerCards, deck, playerCards)
+                #reward = 1
+                cumReward+=reward
                 agent.update(state, action, nextState, reward)
                 break
-            else:
-                agent.update(state, action, nextState, reward)
+            # else:
+            #     agent.update(state, action, nextState, reward)
                 
             state = nextState
             
         elif action == "stand":
             nextState = (playerCardValue, dealerCards[1], numAces)
-            playerCardValue, dealerCard, numAces = nextState
             reward = dealerPlay(dealerCards, deck, playerCards)
+            cumReward+=reward
             agent.update(state, action, nextState, reward)
             break
         
         else:
-            print("bug")
-            
-    print(f"iter: {iter+1}/{numGames}: ", f"reward: {reward}")
-    #print(agent.qValues)
-            
-        
-        
-            
-            
+            print("++++++++++++++++++++++++++++++bug++++++++++++++++++++++")
     
-            
-            
-            
+    # iter+1 ranges from 1 to numGames
+    if (iter+1)%printIter==0:
+        print(f"iter: {iter+1}/{numGames}: ", f"cumReward: {cumReward}")
+        cumReward = 0
+        # agent.decayEpsilon()
+        # agent.decayAlpha()
 
+        
+
+ 
+#################################################################           
+################### Visualization of policy #####################  
+#################################################################
+policies = []
+for numAce in range(5):
+    policy = {}
+    for playerCardValue in range(1,22,1):
+        for dealerCard in range (1,11,1):
+            state = (playerCardValue, dealerCard, numAce)
+            if state not in states:
+                continue    
+            action = agent.getActionFromQValue(state)
+            policy[state] = action
+            
+    policies.append(policy)
     
+print(len(policies))
+for i in range(len(policies)):
+    policy = policies[i]
+    playerStates = []
+    dealerStates = []
+    actions = []
+    for key, value in policy.items():
+        playerStates.append(key[0])
+        dealerStates.append(key[1])
+        actions.append(value)
     
+    colors = []
+    for action in actions:
+        if action=="hit":
+            colors.append("red")
+        elif action=="stand":
+            colors.append("green")
+        else:
+            colors.append("black")
     
+    plt.scatter(dealerStates, playerStates, c=colors)
+    plt.title(f"policy for number of ace = {i}")
+    plt.xlabel("dealerCard")
+    plt.ylabel("PlayerCardValueExcludingAces")
+    plt.show()
+    
+        
+        
+        
+
+
+
+
 
