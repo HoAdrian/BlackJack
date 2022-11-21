@@ -8,6 +8,7 @@ The occurence of black jack (getting 21 in the 0th round) is ignored.
 ![](./images/train_outcome._bj.png)
 
 ## policy learned:
+Note: red means hit, green means stand, black means no actions available
 ![](./images/BJ_ace_0.png)
 ![](./images/BJ_ace_1.png)
 
