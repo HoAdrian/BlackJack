@@ -1,5 +1,5 @@
 # BlackJack
-RL for black jack from scratch. The code uses Q-Learning. The only actions availble are "hit" and "stand" for simplicity.
+RL for black jack from scratch. Just for fun. The code uses Q-Learning. The only actions availble are "hit" and "stand" for simplicity.
 
 ## Example outputs
 The following are outcomes after training for 100000 episodes. In the last 10000 epsiodes, the Q-Learning agent lost 49.9% of the epsidoes. 
