@@ -24,14 +24,14 @@ class QLearningAgent:
         return self.qValues.get((state, action), 0)
         
     def getValueFromQValue(self, state):
-        legalActions = self.getLegalActions(state)
+        legalActions = getLegalActions(state)
         if len(legalActions) == 0:
             return 0
         actionValues = [self.getQValue(state, action) for action in legalActions]
         return max(actionValues)
             
     def getActionFromQValue(self, state):
-        legalActions = self.getLegalActions(state)
+        legalActions = getLegalActions(state)
         if len(legalActions)==0:
           return None
         actionValues = {action: self.getQValue(state, action) for action in legalActions}
@@ -41,7 +41,7 @@ class QLearningAgent:
     
     def getEpsilonGreedyAction(self, state):
         # Pick Action
-        legalActions = self.getLegalActions(state)
+        legalActions = getLegalActions(state)
         isRandomAction = self.flipCoin(self.epsilon)
         
         if(isRandomAction):
@@ -55,19 +55,6 @@ class QLearningAgent:
     def decayAlpha(self):
         self.alpha *= 0.9
     
-    def getLegalActions(self, state):
-        if self.isTerminal(state):
-            return []
-        else:
-            return ["hit", "stand"]
-        
-    def isTerminal(self, state):
-        playerCardValue, dealerCard, numAces = state
-        if playerCardValue+numAces > 21 or playerCardValue+numAces == 21 or playerCardValue+numAces*11 == 21:
-            return True
-        else:
-            return False
-    
     def flipCoin(self, p):
         r = random.random()
         return r < p
@@ -78,9 +65,10 @@ class QLearningAgent:
 ####################################################
 print("++++++++++++training")
 agent = QLearningAgent(alpha=0.2, epsilon=0.2, gamma=0.6)
-numGames = 100000
+numGames = 1000000
 # for checking progress
 printIter = 10000
+decayIter = 10000
 cumReward = 0
 numWin = 0
 numLose = 0
@@ -94,7 +82,7 @@ for iter in range(numGames):
     deck = []
     for fourCards in cards:
         deck.extend(fourCards)
-
+        
     playerCards = {}
     dealerCards = []
     for i in range(2):
@@ -123,12 +111,12 @@ for iter in range(numGames):
             playerCardValue, numAces = getPlayerCardValueExcludeAce(playerCards)
             nextState = (playerCardValue, dealerCards[1], numAces)
             
-            reward = 0
+            reward = 0.0
             playerTotalValue = computePlayerTotalValue(playerCards)
             
             if playerTotalValue > 21:
                 numLose+=1
-                reward = -1
+                reward = -1.0
                 cumReward+=reward
                 # propagate the reward to previous states
                 cumGamma = agent.gamma**len(transitions)
@@ -139,8 +127,8 @@ for iter in range(numGames):
                 break
             elif playerTotalValue == 21:
                 numWin+=1
-                #reward = dealerPlay(dealerCards, deck, playerCards)
-                reward = 1
+                reward = dealerPlay(dealerCards, deck, playerCards)
+                #reward = 1.0
                 cumReward+=reward
                 # propagate the reward to previous states
                 cumGamma = agent.gamma**len(transitions)
@@ -176,6 +164,10 @@ for iter in range(numGames):
         else:
             print("++++++++++++++++++++++++++++++bug++++++++++++++++++++++")
     
+    if(iter+1)%decayIter==0:
+        agent.decayEpsilon()
+        agent.decayAlpha()
+    
     # iter+1 ranges from 1 to numGames
     if (iter+1)%printIter==0:
         print(f"iter: {iter+1}/{numGames}: ", f"cumReward: {cumReward} ", f"numWin, numDraw numLose: {numWin}, {numDraw}, {numLose}")
@@ -183,8 +175,6 @@ for iter in range(numGames):
         numWin=0
         numDraw=0
         numLose=0
-        agent.decayEpsilon()
-        agent.decayAlpha()
 
         
  
@@ -204,7 +194,6 @@ for numAce in range(5):
             
     policies.append(policy)
     
-print(len(policies))
 for i in range(len(policies)):
     policy = policies[i]
     playerStates = []
